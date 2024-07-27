@@ -14,20 +14,20 @@
 
 include(FindOrFetch)
 
-if(SIMULATE_STANDALONE)
+if(MJSIM_STANDALONE)
   # If standalone, by default look for MuJoCo binary version.
   set(DEFAULT_USE_SYSTEM_MUJOCO ON)
 else()
   set(DEFAULT_USE_SYSTEM_MUJOCO OFF)
 endif()
 
-option(MUJOCO_SIMULATE_USE_SYSTEM_MUJOCO "Use installed MuJoCo version."
+option(MUJOCO_MJSIM_USE_SYSTEM_MUJOCO "Use installed MuJoCo version."
        ${DEFAULT_USE_SYSTEM_MUJOCO}
 )
 unset(DEFAULT_USE_SYSTEM_MUJOCO)
 
-option(MUJOCO_SIMULATE_USE_SYSTEM_MUJOCO "Use installed MuJoCo version." OFF)
-option(MUJOCO_SIMULATE_USE_SYSTEM_GLFW "Use installed GLFW version." OFF)
+option(MUJOCO_MJSIM_USE_SYSTEM_MUJOCO "Use installed MuJoCo version." OFF)
+option(MUJOCO_MJSIM_USE_SYSTEM_GLFW "Use installed GLFW version." OFF)
 
 set(MUJOCO_DEP_VERSION_glfw3
     7482de6071d21db77a7236155da44c172a7f6c9e # 3.3.8
@@ -44,7 +44,7 @@ set(MUJOCO_TEST_PYTHON_UTIL OFF)
 
 findorfetch(
   USE_SYSTEM_PACKAGE
-  MUJOCO_SIMULATE_USE_SYSTEM_MUJOCO
+  MUJOCO_MJSIM_USE_SYSTEM_MUJOCO
   PACKAGE_NAME
   mujoco
   LIBRARY_NAME
@@ -59,7 +59,7 @@ findorfetch(
 )
 
 option(MUJOCO_EXTRAS_STATIC_GLFW
-       "Link MuJoCo sample apps and simulate libraries against GLFW statically." ON
+       "Link MuJoCo sample apps and mjsim libraries against GLFW statically." ON
 )
 if(MUJOCO_EXTRAS_STATIC_GLFW)
   set(BUILD_SHARED_LIBS_OLD ${BUILD_SHARED_LIBS})
@@ -76,7 +76,7 @@ set(GLFW_INSTALL OFF)
 
 findorfetch(
   USE_SYSTEM_PACKAGE
-  MUJOCO_SIMULATE_USE_SYSTEM_GLFW
+  MUJOCO_MJSIM_USE_SYSTEM_GLFW
   PACKAGE_NAME
   glfw3
   LIBRARY_NAME
@@ -98,7 +98,7 @@ if(MUJOCO_EXTRAS_STATIC_GLFW)
   unset(BUILD_SHARED_LIBS_OLD)
 endif()
 
-if(NOT SIMULATE_STANDALONE)
+if(NOT MJSIM_STANDALONE)
   target_compile_options(glfw PRIVATE ${MUJOCO_MACOS_COMPILE_OPTIONS})
   target_link_options(glfw PRIVATE ${MUJOCO_MACOS_LINK_OPTIONS})
 endif()

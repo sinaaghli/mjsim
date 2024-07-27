@@ -31,7 +31,7 @@
 #include <thread>
 #include <chrono>
 #include "glfw_adapter.h"
-#include "simulate.h"
+#include "mjsim.h"
 #include "array_safety.h"
 
 #define MUJOCO_PLUGIN_DIR "mujoco_plugin"

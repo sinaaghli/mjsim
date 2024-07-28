@@ -27,12 +27,12 @@ set(MUJOCO_DEP_VERSION_lodepng
     CACHE STRING "Version of `lodepng` to be fetched."
 )
 
-project(
-  mujoco_mjsim
-  VERSION 3.2.0
-  DESCRIPTION "MuJoCo mjsim binaries"
-  HOMEPAGE_URL "https://mujoco.org"
-)
+# project(
+#   mujoco_mjsim
+#   VERSION 3.2.0
+#   DESCRIPTION "MuJoCo mjsim binaries"
+#   HOMEPAGE_URL "https://mujoco.org"
+# )
 
 enable_language(C)
 enable_language(CXX)
@@ -126,8 +126,8 @@ add_library(mujoco::libmjsim ALIAS libmjsim)
 
 target_sources(
   libmjsim
-  PUBLIC mjsim.h
-  PRIVATE mjsim.cc array_safety.h
+  PUBLIC simulation.h
+  PRIVATE simulation.cc array_safety.h
 )
 target_include_directories(libmjsim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(libmjsim PRIVATE ${MUJOCO_MJSIM_COMPILE_OPTIONS})

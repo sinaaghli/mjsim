@@ -28,10 +28,12 @@
 #include <mujoco/mujoco.h>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
+#include "rclcpp/parameter_client.hpp"
+
 #include <thread>
 #include <chrono>
 #include "glfw_adapter.h"
-#include "mjsim.h"
+#include "simulation.h"
 #include "array_safety.h"
 
 #define MUJOCO_PLUGIN_DIR "mujoco_plugin"
@@ -457,6 +459,27 @@ __attribute__((used, visibility("default"))) extern "C" void _mj_rosettaError(co
 }
 #endif
 
+
+using namespace std::chrono_literals;
+
+class mjsim : public rclcpp::Node
+{
+public:
+  mjsim()
+  : Node("mjsim")
+  {
+    subscription_ = this->create_subscription<std_msgs::msg::String>(
+      "/robot_description", 10, std::bind(&mjsim::topic_callback, this, std::placeholders::_1));
+  }
+
+private:
+  void topic_callback(const std_msgs::msg::String::SharedPtr msg) const
+  {
+    RCLCPP_INFO(this->get_logger(), "Received: '%s'", msg->data.c_str());
+  }
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
+};
+
 // run event loop
 int main(int argc, char** argv) {
 
@@ -497,12 +520,26 @@ int main(int argc, char** argv) {
     filename = argv[1];
   }
 
+  // ros setup
+  rclcpp::init(argc, argv);
+
+  auto node = std::make_shared<mjsim>();
+
+  std::thread ros_thread([&]() {
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+  });
+
   // start physics thread
   std::thread physicsthreadhandle(&PhysicsThread, sim.get(), filename);
 
   // start simulation UI loop (blocking call)
   sim->RenderLoop();
   physicsthreadhandle.join();
+
+  if (ros_thread.joinable()) {
+    ros_thread.join();
+  }
 
   return 0;
 }

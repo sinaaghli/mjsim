@@ -126,8 +126,8 @@ add_library(mujoco::libmjsim ALIAS libmjsim)
 
 target_sources(
   libmjsim
-  PUBLIC simulation.h
-  PRIVATE simulation.cc array_safety.h
+  PUBLIC simulation.h mjsim.h
+  PRIVATE simulation.cc array_safety.h mjsim_data.h
 )
 target_include_directories(libmjsim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(libmjsim PRIVATE ${MUJOCO_MJSIM_COMPILE_OPTIONS})
@@ -149,7 +149,7 @@ if(MJSIM_BUILD_EXECUTABLE)
     set(MJSIM_RESOURCE_FILES "")
   endif()
 
-  add_executable(mjsim main.cc array_safety.h ${MJSIM_RESOURCE_FILES})
+  add_executable(mjsim main.cc mjsim.h array_safety.h mjsim_data.h ${MJSIM_RESOURCE_FILES})
   target_compile_options(mjsim PUBLIC ${MUJOCO_MJSIM_COMPILE_OPTIONS})
   if(WIN32)
     add_custom_command(

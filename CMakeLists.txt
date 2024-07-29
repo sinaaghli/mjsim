@@ -21,20 +21,9 @@ install(
   DESTINATION share/${PROJECT_NAME}/
 )
 
-
-# Create mjsim executable
-# target_compile_options(mjsim_executable PUBLIC ${MJSIM_COMPILE_OPTIONS})
-# target_include_directories(mjsim_executable PUBLIC ${lodepng_SOURCE_DIR})
-# target_link_libraries(
-#   mjsim_executable
-#   libmjsim
-#   mujoco::mujoco
-#   glfw
-#   Threads::Threads
-#   lodepng
-# )
-# target_link_options(mjsim_executable PRIVATE ${MJSIM_LINK_OPTIONS})
-
-
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 ament_package()

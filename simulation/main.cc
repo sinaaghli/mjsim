@@ -27,8 +27,9 @@
 
 #include <mujoco/mujoco.h>
 #include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/string.hpp>
-#include "rclcpp/parameter_client.hpp"
+#include <fstream>
+#include "mjsim.h"
+#include "mjsim_data.h"
 
 #include <thread>
 #include <chrono>
@@ -65,6 +66,8 @@ mjData* d = nullptr;
 
 using Seconds = std::chrono::duration<double>;
 
+// setup shared data
+std::shared_ptr<mjsim_data> shared_data;
 
 //---------------------------------------- plugin handling -----------------------------------------
 
@@ -319,6 +322,37 @@ void PhysicsLoop(mj::Simulate& sim) {
         sim.LoadMessageClear();
       }
     }
+    // check if there is new urdf
+    std::shared_ptr<std::string> urdf_file = shared_data->GetURDFFilePath();
+    if(urdf_file) {
+      std::string modelname("robot_description.urdf");
+      sim.LoadMessage(modelname.c_str());
+      char load_error[1000];
+      mjModel* mnew = mj_loadXML(urdf_file->c_str(), NULL, load_error, 1000);
+      if (mnew) {
+        mjData* dnew = nullptr;
+        if (mnew) dnew = mj_makeData(mnew);
+        if (dnew) {
+          sim.Load(mnew, dnew, urdf_file->c_str());
+
+          // lock the sim mutex
+          const std::unique_lock<std::recursive_mutex> lock(sim.mtx);
+
+          mj_deleteData(d);
+          mj_deleteModel(m);
+
+          m = mnew;
+          d = dnew;
+          mj_forward(m, d);
+
+        } else {
+          sim.LoadMessageClear();
+        }
+      } else {
+        sim.LoadMessageClear();
+        std::cout << "Failed to load the model!\n Load Error:\n" << load_error << std::endl;
+      }
+    }
 
     // sleep for 1 ms or yield, to let main thread run
     //  yield results in busy wait - which has better timing but kills battery life
@@ -448,6 +482,13 @@ void PhysicsThread(mj::Simulate* sim, const char* filename) {
 
 }
 
+void ros2_node_thread(std::shared_ptr<mjsim_data> shared_data)
+{
+    auto node = std::make_shared<mjsim>(shared_data);
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+}
+
 //------------------------------------------ main --------------------------------------------------
 
 // machinery for replacing command line error by a macOS dialog box when running under Rosetta
@@ -458,27 +499,6 @@ __attribute__((used, visibility("default"))) extern "C" void _mj_rosettaError(co
   rosetta_error_msg = msg;
 }
 #endif
-
-
-using namespace std::chrono_literals;
-
-class mjsim : public rclcpp::Node
-{
-public:
-  mjsim()
-  : Node("mjsim")
-  {
-    subscription_ = this->create_subscription<std_msgs::msg::String>(
-      "/robot_description", 10, std::bind(&mjsim::topic_callback, this, std::placeholders::_1));
-  }
-
-private:
-  void topic_callback(const std_msgs::msg::String::SharedPtr msg) const
-  {
-    RCLCPP_INFO(this->get_logger(), "Received: '%s'", msg->data.c_str());
-  }
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
-};
 
 // run event loop
 int main(int argc, char** argv) {
@@ -516,29 +536,30 @@ int main(int argc, char** argv) {
   );
 
   const char* filename = nullptr;
-  if (argc >  1) {
-    filename = argv[1];
-  }
+
+  // Determine the directory of the executable
+  std::filesystem::path exec_path(argv[0]);
+  std::string exec_dir = exec_path.parent_path().string();
+
+  shared_data = std::make_shared<mjsim_data>(exec_dir);
 
   // ros setup
   rclcpp::init(argc, argv);
-
-  auto node = std::make_shared<mjsim>();
-
-  std::thread ros_thread([&]() {
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-  });
+  std::thread ros_thread(ros2_node_thread,shared_data);
 
   // start physics thread
   std::thread physicsthreadhandle(&PhysicsThread, sim.get(), filename);
 
   // start simulation UI loop (blocking call)
   sim->RenderLoop();
-  physicsthreadhandle.join();
 
+  rclcpp::shutdown();
   if (ros_thread.joinable()) {
     ros_thread.join();
+  }
+
+  if(physicsthreadhandle.joinable()){
+    physicsthreadhandle.join();
   }
 
   return 0;

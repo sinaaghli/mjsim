@@ -1,0 +1,4 @@
+mjsim:
+  ros__parameters:
+    urdf_file_path: ""
+    # urdf_file_path: "/home/demo/code/mjsim_ws/install/ur_description/share/ur_description/meshes/ur5/collision/robot_description.urdf"

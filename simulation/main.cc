@@ -266,6 +266,26 @@ mjModel* LoadModel(const char* file, mj::Simulate& sim) {
   return mnew;
 }
 
+void GetJointInfo(const mjModel* m, const mjData* d) {
+  std::vector<mjsim_data::jointstate> jstatevec;
+  for (int i = 0; i < m->njnt; i++) {
+      mjsim_data::jointstate js;
+      // Get joint name
+      const char* jointName = mj_id2name(m, mjOBJ_JOINT, i);
+      if (jointName) {
+          js.jname = jointName;
+      } else {
+          js.jname = "Unnamed";
+      }
+      // Get joint position vel and torque
+      js.jposition = d->qpos[m->jnt_qposadr[i]];
+      js.jvelocity = d->qvel[m->jnt_dofadr[i]];
+      js.jtorque = d->qfrc_applied[m->jnt_dofadr[i]];
+      jstatevec.push_back(js);
+  }
+  shared_data->UpdateJointStates(jstatevec);
+}
+
 // simulate in background thread (while rendering in main thread)
 void PhysicsLoop(mj::Simulate& sim) {
   // cpu-sim syncronization point
@@ -434,6 +454,7 @@ void PhysicsLoop(mj::Simulate& sim) {
           if (stepped) {
             sim.AddToHistory();
           }
+          GetJointInfo(m,d);
         }
 
         // paused
